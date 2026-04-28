@@ -10,8 +10,8 @@ const projectId = process.env.PROJECT_ID || ''
 const userId = process.env.USER_ID || ''
 // 全栈编码沙箱带 userId（/sandbox/projectId_userId/），原型沙箱仅 projectId（/sandbox/projectId/）
 const sandboxKey = userId ? `${projectId}_${userId}` : projectId
-// 生产构建始终用 '/'，仅 dev 模式使用沙箱路径（避免在容器内打包时被环境变量污染）
-const basePath = (!isProduction && projectId) ? `/sandbox/${sandboxKey}/` : '/'
+// GitHub Pages 部署路径（/test-project/），仅 dev 模式使用沙箱路径
+const basePath = (!isProduction && projectId) ? `/sandbox/${sandboxKey}/` : '/test-project/'
 const routerBasename = basePath.replace(/\/$/, '') || '/'
 
 /**

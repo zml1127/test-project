@@ -7,9 +7,7 @@
 /yarn.lock
 /package-lock.json
 # production
-# 暂时注释 dist
-/dist
-dist
+# dist 目录用于 GitHub Pages 部署，不忽略
 /distsh
 distsh
 /dist_back
