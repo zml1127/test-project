@@ -54,6 +54,13 @@
             <div id="dashboardTab" class="tab-content active">
                 <div class="dashboard">
                     <h2>📊 数据概览</h2>
+                    
+                    <!-- 全局搜索框 -->
+                    <div class="global-search">
+                        <input type="text" id="globalSearch" placeholder="🔍 全局搜索：输入物品名称或柜子名称..." oninput="globalSearch()">
+                        <div id="globalSearchResults" class="global-search-results"></div>
+                    </div>
+                    
                     <div class="stats-grid">
                         <div class="stat-card">
                             <div class="icon">📦</div>
@@ -79,7 +86,7 @@
                         </div>
                         
                         <div class="detail-panel">
-                            <h3>🕒 最近添加的物品</h3>
+                            <h3>🕒 最近添加的物品（历史轨迹）</h3>
                             <div id="recentItems"></div>
                         </div>
                     </div>
@@ -108,7 +115,7 @@
                                     <input type="text" id="cabinetName" placeholder="请输入柜子名称" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="cabinetLocation">柜子位置</label>
+                                    <label for="cabinetLocation">柜子位置（类别）</label>
                                     <select id="cabinetLocation" required>
                                         <option value="">请选择位置</option>
                                         <option value="客厅">客厅</option>
@@ -121,18 +128,7 @@
                                         <option value="其他">其他</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label>柜子图片（可选）</label>
-                                    <div class="image-upload">
-                                        <div class="image-preview" id="cabinetImagePreview">
-                                            <span class="placeholder">📷</span>
-                                        </div>
-                                        <label class="upload-btn">
-                                            选择图片
-                                            <input type="file" accept="image/*" id="cabinetImage" style="display: none;" onchange="previewImage(this, 'cabinetImagePreview')">
-                                        </label>
-                                    </div>
-                                </div>
+                                <!-- 柜子照片功能已移除 -->
                                 <div style="display: flex; gap: 10px;">
                                     <button type="submit" class="btn">确认创建</button>
                                     <button type="button" class="btn" style="background: #666;" onclick="toggleCabinetForm()">取消</button>
@@ -190,23 +186,12 @@
                                     <input type="text" id="itemName" placeholder="请输入物品名称" required>
                                 </div>
                                 <div class="form-group">
-                                    <label for="itemCabinet">放置柜子</label>
+                                    <label for="itemCabinet">放置柜子（归属关联）</label>
                                     <select id="itemCabinet" required>
                                         <option value="">请选择柜子</option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label>物品图片（可选）</label>
-                                    <div class="image-upload">
-                                        <div class="image-preview" id="itemImagePreview">
-                                            <span class="placeholder">📷</span>
-                                        </div>
-                                        <label class="upload-btn">
-                                            选择图片
-                                            <input type="file" accept="image/*" id="itemImage" style="display: none;" onchange="previewImage(this, 'itemImagePreview')">
-                                        </label>
-                                    </div>
-                                </div>
+                                <!-- 物品照片功能已移除 -->
                                 <div style="display: flex; gap: 10px;">
                                     <button type="submit" class="btn">确认添加</button>
                                     <button type="button" class="btn" style="background: #666;" onclick="toggleItemForm()">取消</button>
