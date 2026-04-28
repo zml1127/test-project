@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Microsoft YaHei', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff8a80 0%, #ff5252 30%, #e53935 70%, #c62828 100%);
     min-height: 100vh;
 }
 
@@ -65,13 +65,13 @@ body {
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #e53935;
 }
 
 .btn {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff5252 0%, #e53935 50%, #c62828 100%);
     color: white;
     border: none;
     border-radius: 10px;
@@ -82,7 +82,7 @@ body {
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 8px 20px rgba(229, 57, 53, 0.4);
 }
 
 .error-msg {
@@ -117,7 +117,7 @@ body {
 .nav-brand {
     font-size: 1.5rem;
     font-weight: bold;
-    color: #667eea;
+    color: #e53935;
 }
 
 .nav-links {
@@ -140,7 +140,7 @@ body {
 }
 
 .nav-links a.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff5252 0%, #e53935 50%, #c62828 100%);
     color: white;
 }
 
@@ -274,7 +274,7 @@ body {
 .stat-card .number {
     font-size: 2.5rem;
     font-weight: bold;
-    color: #667eea;
+    color: #e53935;
 }
 
 .stat-card .label {
@@ -289,7 +289,7 @@ body {
 
 .stat-card.clickable:hover {
     transform: translateY(-5px);
-    box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 15px 40px rgba(229, 57, 53, 0.4);
 }
 
 /* 搜索栏 */
@@ -323,7 +323,7 @@ body {
 }
 
 .panel-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff5252 0%, #e53935 50%, #c62828 100%);
     color: white;
     padding: 15px 20px;
     font-size: 1.3rem;
@@ -407,7 +407,7 @@ body {
 
 .badge {
     display: inline-block;
-    background: #667eea;
+    background: #e53935;
     color: white;
     padding: 3px 10px;
     border-radius: 15px;
@@ -415,11 +415,11 @@ body {
 }
 
 .badge-cabinet {
-    background: #764ba2;
+    background: #c62828;
 }
 
 .badge-location {
-    background: #28a745;
+    background: #ff7043;
 }
 
 .delete-btn {
@@ -438,7 +438,7 @@ body {
 }
 
 .edit-btn {
-    background: #667eea;
+    background: #e53935;
     color: white;
     border: none;
     padding: 8px 15px;
@@ -448,7 +448,7 @@ body {
 }
 
 .edit-btn:hover {
-    background: #5568d3;
+    background: #c62828;
 }
 
 .empty-state {

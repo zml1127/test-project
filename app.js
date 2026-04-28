@@ -272,9 +272,15 @@ document.addEventListener('click', function(e) {
 
 // 点击其他地方关闭模态框
 document.addEventListener('click', function(e) {
-    const modal = document.getElementById('editCabinetModal');
-    if (modal && e.target === modal) {
+    const editModal = document.getElementById('editCabinetModal');
+    const importModal = document.getElementById('importModal');
+    
+    if (editModal && e.target === editModal) {
         closeEditCabinetModal();
+    }
+    
+    if (importModal && e.target === importModal) {
+        closeImportModal();
     }
 });
 
@@ -643,6 +649,122 @@ function logout() {
         document.getElementById('password').value = '';
         document.getElementById('globalSearch').value = '';
         document.getElementById('globalSearchResults').classList.remove('active');
+    }
+}
+
+// 导出数据 - 复制到剪贴板
+function exportData() {
+    const cabinets = CabinetManager.getAll();
+    const items = ItemManager.getAll();
+    
+    const exportData = {
+        version: '1.0',
+        exportTime: new Date().toISOString(),
+        cabinets: cabinets,
+        items: items
+    };
+    
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    
+    navigator.clipboard.writeText(jsonStr).then(() => {
+        alert('✅ 数据已复制到剪贴板！\n\n柜子数量：' + cabinets.length + '\n物品数量：' + items.length);
+    }).catch(() => {
+        // 备用方案：使用传统的复制方法
+        const textarea = document.createElement('textarea');
+        textarea.value = jsonStr;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('✅ 数据已复制到剪贴板！\n\n柜子数量：' + cabinets.length + '\n物品数量：' + items.length);
+    });
+}
+
+// 打开导入模态框
+function openImportModal() {
+    document.getElementById('importDataInput').value = '';
+    document.getElementById('importModal').classList.add('active');
+}
+
+// 关闭导入模态框
+function closeImportModal() {
+    document.getElementById('importModal').classList.remove('active');
+}
+
+// 导入数据
+function importData() {
+    const input = document.getElementById('importDataInput').value.trim();
+    
+    if (!input) {
+        alert('请输入要导入的数据');
+        return;
+    }
+    
+    try {
+        const data = JSON.parse(input);
+        
+        if (!data.cabinets || !Array.isArray(data.cabinets)) {
+            alert('数据格式错误：缺少柜子数据');
+            return;
+        }
+        
+        if (!data.items || !Array.isArray(data.items)) {
+            alert('数据格式错误：缺少物品数据');
+            return;
+        }
+        
+        // 询问用户是追加还是覆盖
+        const mode = confirm('点击"确定"追加数据，点击"取消"覆盖现有数据');
+        
+        if (mode) {
+            // 追加模式 - 合并现有数据
+            const existingCabinets = CabinetManager.getAll();
+            const existingItems = ItemManager.getAll();
+            
+            // 为导入的数据生成新的ID避免冲突
+            const idMapping = {};
+            
+            data.cabinets.forEach(cabinet => {
+                const newId = Date.now() + Math.random();
+                idMapping[cabinet.id] = newId;
+                
+                const newCabinet = {
+                    id: newId,
+                    name: cabinet.name,
+                    location: cabinet.location,
+                    createdAt: cabinet.createdAt || new Date().toISOString()
+                };
+                existingCabinets.push(newCabinet);
+            });
+            
+            data.items.forEach(item => {
+                const newItem = {
+                    id: Date.now() + Math.random() + Math.random(),
+                    name: item.name,
+                    cabinetId: idMapping[item.cabinetId] || item.cabinetId,
+                    createdAt: item.createdAt || new Date().toISOString()
+                };
+                existingItems.push(newItem);
+            });
+            
+            Storage.set('cabinets', existingCabinets);
+            Storage.set('items', existingItems);
+        } else {
+            // 覆盖模式
+            Storage.set('cabinets', data.cabinets);
+            Storage.set('items', data.items);
+        }
+        
+        closeImportModal();
+        UI.renderCabinets();
+        UI.renderItems();
+        UI.updateCabinetSelect();
+        UI.renderDashboard();
+        
+        alert('✅ 数据导入成功！\n\n导入柜子：' + data.cabinets.length + '\n导入物品：' + data.items.length);
+        
+    } catch (e) {
+        alert('❌ 数据格式错误，请检查JSON格式是否正确！\n\n错误信息：' + e.message);
     }
 }
 
