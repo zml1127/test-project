@@ -1,0 +1,528 @@
+// 数据管理
+const Storage = {
+    get(key) {
+        const data = localStorage.getItem(key);
+        return data ? JSON.parse(data) : [];
+    },
+    set(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+};
+
+// 初始化默认用户
+function initUsers() {
+    const users = Storage.get('users');
+    if (users.length === 0) {
+        Storage.set('users', [{ username: 'admin', password: 'admin123' }]);
+    }
+}
+
+// 认证管理
+const Auth = {
+    SESSION_KEY: 'currentUser',
+    
+    login(username, password) {
+        const users = Storage.get('users');
+        const user = users.find(u => u.username === username && u.password === password);
+        if (user) {
+            Storage.set(this.SESSION_KEY, { username: user.username, role: 'admin' });
+            return true;
+        }
+        return false;
+    },
+    
+    logout() {
+        localStorage.removeItem(this.SESSION_KEY);
+    },
+    
+    isLoggedIn() {
+        return !!localStorage.getItem(this.SESSION_KEY);
+    },
+    
+    getCurrentUser() {
+        return Storage.get(this.SESSION_KEY);
+    }
+};
+
+// 柜子相关操作
+const CabinetManager = {
+    key: 'cabinets',
+    
+    getAll() {
+        return Storage.get(this.key);
+    },
+    
+    add(name, location, image) {
+        const cabinets = this.getAll();
+        const cabinet = {
+            id: Date.now(),
+            name: name.trim(),
+            location: location,
+            image: image || null,
+            createdAt: new Date().toISOString()
+        };
+        cabinets.push(cabinet);
+        Storage.set(this.key, cabinets);
+        return cabinet;
+    },
+    
+    delete(id) {
+        let cabinets = this.getAll();
+        cabinets = cabinets.filter(c => c.id !== id);
+        Storage.set(this.key, cabinets);
+        ItemManager.deleteByCabinet(id);
+    },
+    
+    count() {
+        return this.getAll().length;
+    },
+    
+    search(keyword, location) {
+        const cabinets = this.getAll();
+        return cabinets.filter(c => {
+            const matchName = !keyword || c.name.toLowerCase().includes(keyword.toLowerCase());
+            const matchLocation = !location || c.location === location;
+            return matchName && matchLocation;
+        });
+    }
+};
+
+// 物品相关操作
+const ItemManager = {
+    key: 'items',
+    
+    getAll() {
+        return Storage.get(this.key);
+    },
+    
+    add(name, cabinetId, image) {
+        const items = this.getAll();
+        const item = {
+            id: Date.now(),
+            name: name.trim(),
+            cabinetId: parseInt(cabinetId),
+            image: image || null,
+            createdAt: new Date().toISOString()
+        };
+        items.push(item);
+        Storage.set(this.key, items);
+        return item;
+    },
+    
+    delete(id) {
+        let items = this.getAll();
+        items = items.filter(i => i.id !== id);
+        Storage.set(this.key, items);
+    },
+    
+    deleteByCabinet(cabinetId) {
+        let items = this.getAll();
+        items = items.filter(i => i.cabinetId !== cabinetId);
+        Storage.set(this.key, items);
+    },
+    
+    getByCabinet(cabinetId) {
+        const items = this.getAll();
+        return items.filter(i => i.cabinetId === cabinetId);
+    },
+    
+    count() {
+        return this.getAll().length;
+    },
+    
+    getRecent(limit = 5) {
+        const items = this.getAll();
+        return items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, limit);
+    },
+    
+    search(keyword) {
+        const items = this.getAll();
+        if (!keyword) return items;
+        return items.filter(i => i.name.toLowerCase().includes(keyword.toLowerCase()));
+    }
+};
+
+// 图片预览功能
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.innerHTML = '<img src="' + e.target.result + '" alt="预览">';
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// 切换柜子表单显示
+function toggleCabinetForm() {
+    const formContainer = document.getElementById('cabinetFormContainer');
+    const btn = document.getElementById('showCabinetFormBtn');
+    
+    if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'block';
+        btn.innerHTML = '➖ 收起表单';
+        btn.style.background = 'linear-gradient(135deg, #666 0%, #555 100%)';
+    } else {
+        formContainer.style.display = 'none';
+        btn.innerHTML = '➕ 创建新柜子';
+        btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        // 重置表单
+        document.getElementById('cabinetForm').reset();
+        document.getElementById('cabinetImagePreview').innerHTML = '<span class="placeholder">📷</span>';
+    }
+}
+
+// 切换物品表单显示
+function toggleItemForm() {
+    const formContainer = document.getElementById('itemFormContainer');
+    const btn = document.getElementById('showItemFormBtn');
+    
+    if (formContainer.style.display === 'none') {
+        formContainer.style.display = 'block';
+        btn.innerHTML = '➖ 收起表单';
+        btn.style.background = 'linear-gradient(135deg, #666 0%, #555 100%)';
+        // 更新柜子选择下拉框
+        updateCabinetSelect();
+    } else {
+        formContainer.style.display = 'none';
+        btn.innerHTML = '➕ 添加新物品';
+        btn.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+        // 重置表单
+        document.getElementById('itemForm').reset();
+        document.getElementById('itemImagePreview').innerHTML = '<span class="placeholder">📷</span>';
+    }
+}
+
+// Tab 切换
+function switchTab(tabName) {
+    // 更新导航链接状态
+    document.querySelectorAll('.nav-links a').forEach(a => {
+        a.classList.remove('active');
+        if (a.dataset.tab === tabName) {
+            a.classList.add('active');
+        }
+    });
+
+    // 隐藏所有 Tab 内容
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // 显示对应的 Tab 内容
+    document.getElementById(tabName + 'Tab').classList.add('active');
+
+    // 刷新对应 Tab 的数据（强制显示所有数据）
+    if (tabName === 'dashboard') {
+        UI.renderDashboard();
+    } else if (tabName === 'cabinet') {
+        // 清空搜索框和筛选条件
+        const cabinetSearch = document.getElementById('cabinetSearch');
+        const locationFilter = document.getElementById('locationFilter');
+        if (cabinetSearch) cabinetSearch.value = '';
+        if (locationFilter) locationFilter.value = '';
+        UI.renderCabinets();
+    } else if (tabName === 'item') {
+        // 清空搜索框
+        const itemSearch = document.getElementById('itemSearch');
+        if (itemSearch) itemSearch.value = '';
+        UI.renderItems();
+        UI.updateCabinetSelect();
+    }
+
+    // 阻止默认链接行为
+    event.preventDefault();
+}
+
+// UI渲染
+const UI = {
+    renderCabinets(filteredCabinets) {
+        const cabinets = filteredCabinets !== null ? filteredCabinets : CabinetManager.getAll();
+        const container = document.getElementById('cabinetList');
+        const countBadge = document.getElementById('cabinetCount');
+        
+        countBadge.textContent = cabinets.length;
+        
+        if (cabinets.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📦</div><p>暂无柜子，请先创建柜子</p></div>';
+            return;
+        }
+        
+        const searchKeyword = document.getElementById('cabinetSearch') ? document.getElementById('cabinetSearch').value : '';
+        
+        container.innerHTML = cabinets.map(cabinet => {
+            const itemCount = ItemManager.getByCabinet(cabinet.id).length;
+            const imageHtml = cabinet.image 
+                ? '<img src="' + cabinet.image + '" alt="' + cabinet.name + '">'
+                : '<span class="placeholder">📦</span>';
+            
+            return '<div class="item-card">' +
+                '<div class="item-image">' + imageHtml + '</div>' +
+                '<div class="item-info">' +
+                    '<h4>' + highlightText(cabinet.name, searchKeyword) + '</h4>' +
+                    '<p>位置：<span class="badge badge-location">' + cabinet.location + '</span></p>' +
+                    '<p>包含 <span class="badge">' + itemCount + '</span> 个物品</p>' +
+                '</div>' +
+                '<button class="delete-btn" onclick="deleteCabinet(' + cabinet.id + ')">删除</button>' +
+            '</div>';
+        }).join('');
+    },
+    
+    renderItems(filteredItems) {
+        const items = filteredItems !== null ? filteredItems : ItemManager.getAll();
+        const cabinets = CabinetManager.getAll();
+        const container = document.getElementById('itemList');
+        const countBadge = document.getElementById('itemCount');
+        
+        countBadge.textContent = items.length;
+        
+        if (items.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📦</div><p>暂无物品，请先添加物品</p></div>';
+            return;
+        }
+        
+        const searchKeyword = document.getElementById('itemSearch') ? document.getElementById('itemSearch').value : '';
+        
+        container.innerHTML = items.map(item => {
+            const cabinet = cabinets.find(c => c.id === item.cabinetId);
+            const imageHtml = item.image 
+                ? '<img src="' + item.image + '" alt="' + item.name + '">'
+                : '<span class="placeholder">📦</span>';
+            
+            return '<div class="item-card">' +
+                '<div class="item-image">' + imageHtml + '</div>' +
+                '<div class="item-info">' +
+                    '<h4>' + highlightText(item.name, searchKeyword) + '</h4>' +
+                    '<p>放置于 <span class="badge badge-cabinet">' + (cabinet ? cabinet.name : '未知柜子') + '</span></p>' +
+                    '<p>位置：<span class="badge badge-location">' + (cabinet ? cabinet.location : '-') + '</span></p>' +
+                '</div>' +
+                '<button class="delete-btn" onclick="deleteItem(' + item.id + ')">删除</button>' +
+            '</div>';
+        }).join('');
+    },
+    
+    updateCabinetSelect() {
+        const cabinets = CabinetManager.getAll();
+        const select = document.getElementById('itemCabinet');
+        
+        select.innerHTML = '<option value="">请选择柜子</option>' + 
+            cabinets.map(cabinet => 
+                '<option value="' + cabinet.id + '">' + cabinet.name + '（' + cabinet.location + '）</option>'
+            ).join('');
+    },
+    
+    renderDashboard() {
+        const totalCabinets = CabinetManager.count();
+        const totalItems = ItemManager.count();
+        const avgItems = totalCabinets > 0 ? (totalItems / totalCabinets).toFixed(1) : 0;
+        
+        document.getElementById('totalCabinets').textContent = totalCabinets;
+        document.getElementById('totalItems').textContent = totalItems;
+        document.getElementById('avgItems').textContent = avgItems;
+        
+        // 柜子物品分布
+        const cabinets = CabinetManager.getAll();
+        const distributionContainer = document.getElementById('cabinetDistribution');
+        
+        if (cabinets.length === 0) {
+            distributionContainer.innerHTML = '<p style="color: #999; text-align: center;">暂无数据</p>';
+        } else {
+            distributionContainer.innerHTML = cabinets.map(cabinet => {
+                const count = ItemManager.getByCabinet(cabinet.id).length;
+                const percentage = totalItems > 0 ? ((count / totalItems) * 100).toFixed(0) : 0;
+                return '<div class="detail-item">' +
+                    '<span>' + cabinet.name + ' <small>(' + cabinet.location + ')</small></span>' +
+                    '<span><span class="badge">' + count + '</span> (' + percentage + '%)</span>' +
+                '</div>';
+            }).join('');
+        }
+        
+        // 最近添加的物品
+        const recentItems = ItemManager.getRecent(5);
+        const recentContainer = document.getElementById('recentItems');
+        
+        if (recentItems.length === 0) {
+            recentContainer.innerHTML = '<p style="color: #999; text-align: center;">暂无数据</p>';
+        } else {
+            const allCabinets = CabinetManager.getAll();
+            recentContainer.innerHTML = recentItems.map(item => {
+                const cabinet = allCabinets.find(c => c.id === item.cabinetId);
+                const date = new Date(item.createdAt).toLocaleDateString('zh-CN');
+                return '<div class="detail-item">' +
+                    '<span>' + item.name + '</span>' +
+                    '<span><span class="badge badge-cabinet">' + (cabinet ? cabinet.name : '-') + '</span> ' + date + '</span>' +
+                '</div>';
+            }).join('');
+        }
+    },
+    
+    render() {
+        this.renderDashboard();
+    }
+};
+
+// 高亮搜索文本
+function highlightText(text, keyword) {
+    if (!keyword) return text;
+    const regex = new RegExp('(' + keyword + ')', 'gi');
+    return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
+// 筛选柜子
+function filterCabinets() {
+    const keyword = document.getElementById('cabinetSearch').value;
+    const location = document.getElementById('locationFilter').value;
+    const filtered = CabinetManager.search(keyword, location);
+    UI.renderCabinets(filtered);
+}
+
+// 筛选物品
+function filterItems() {
+    const keyword = document.getElementById('itemSearch').value;
+    const filtered = ItemManager.search(keyword);
+    UI.renderItems(filtered);
+}
+
+// 移动端菜单切换
+function toggleMenu() {
+    document.getElementById('navLinks').classList.toggle('active');
+}
+
+// 登录表单提交
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    
+    if (Auth.login(username, password)) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        document.getElementById('errorMsg').style.display = 'none';
+        UI.render();
+    } else {
+        document.getElementById('errorMsg').style.display = 'block';
+    }
+});
+
+// 柜子表单提交
+document.getElementById('cabinetForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('cabinetName');
+    const locationSelect = document.getElementById('cabinetLocation');
+    const imageInput = document.getElementById('cabinetImage');
+    
+    const name = nameInput.value.trim();
+    const location = locationSelect.value;
+    
+    if (!name) {
+        alert('请输入柜子名称');
+        return;
+    }
+    
+    if (!location) {
+        alert('请选择柜子位置');
+        return;
+    }
+    
+    let imageData = null;
+    if (imageInput.files && imageInput.files[0]) {
+        imageData = await new Promise(function(resolve) {
+            const reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.readAsDataURL(imageInput.files[0]);
+        });
+    }
+    
+    CabinetManager.add(name, location, imageData);
+    nameInput.value = '';
+    locationSelect.value = '';
+    imageInput.value = '';
+    document.getElementById('cabinetImagePreview').innerHTML = '<span class="placeholder">📷</span>';
+    
+    // 隐藏表单并更新列表
+    toggleCabinetForm();
+    UI.renderCabinets();
+});
+
+// 物品表单提交
+document.getElementById('itemForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const nameInput = document.getElementById('itemName');
+    const cabinetSelect = document.getElementById('itemCabinet');
+    const imageInput = document.getElementById('itemImage');
+    
+    const name = nameInput.value.trim();
+    const cabinetId = cabinetSelect.value;
+    
+    if (!name) {
+        alert('请输入物品名称');
+        return;
+    }
+    
+    if (!cabinetId) {
+        alert('请选择柜子');
+        return;
+    }
+    
+    let imageData = null;
+    if (imageInput.files && imageInput.files[0]) {
+        imageData = await new Promise(function(resolve) {
+            const reader = new FileReader();
+            reader.onload = function(e) { resolve(e.target.result); };
+            reader.readAsDataURL(imageInput.files[0]);
+        });
+    }
+    
+    ItemManager.add(name, cabinetId, imageData);
+    nameInput.value = '';
+    cabinetSelect.value = '';
+    imageInput.value = '';
+    document.getElementById('itemImagePreview').innerHTML = '<span class="placeholder">📷</span>';
+    
+    // 隐藏表单并更新列表
+    toggleItemForm();
+    UI.renderItems();
+});
+
+// 删除柜子
+function deleteCabinet(id) {
+    if (confirm('确定要删除这个柜子吗？柜子内的物品也会被删除')) {
+        CabinetManager.delete(id);
+        UI.renderCabinets();
+    }
+}
+
+// 删除物品
+function deleteItem(id) {
+    if (confirm('确定要删除这个物品吗？')) {
+        ItemManager.delete(id);
+        UI.renderItems();
+    }
+}
+
+// 登出
+function logout() {
+    if (confirm('确定要登出吗？')) {
+        Auth.logout();
+        document.getElementById('mainPage').style.display = 'none';
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('username').value = '';
+        document.getElementById('password').value = '';
+    }
+}
+
+// 页面加载时检查登录状态
+window.onload = function() {
+    initUsers();
+    if (Auth.isLoggedIn()) {
+        document.getElementById('loginPage').style.display = 'none';
+        document.getElementById('mainPage').style.display = 'block';
+        UI.render();
+        UI.renderCabinets();
+        UI.renderItems();
+        UI.updateCabinetSelect();
+    } else {
+        document.getElementById('loginPage').style.display = 'flex';
+        document.getElementById('mainPage').style.display = 'none';
+    }
+};
